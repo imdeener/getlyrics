@@ -38,7 +38,7 @@ async function api(path, params) {
 }
 
 // Runs [path, params, pick] queries in order and returns the first hit. A busy query is skipped,
-// not fatal; only if nothing was found and something was busy does the lookup report 'busy'.
+// not fatal; only if nothing was found and a main query was busy does the lookup report 'busy'.
 async function firstHit(queries) {
   let busy = false;
   for (const [path, params, pick] of queries) {
@@ -47,7 +47,9 @@ async function firstHit(queries) {
       if (hit) return hit;
     } catch (e) {
       if (e.message !== 'busy') throw e;
-      busy = true;
+      // Free-text `q` is only a fallback. If the structured lookups answered "nothing" and only `q`
+      // was busy, the honest result is "not found", not "couldn't reach LRCLIB".
+      if (!params?.q) busy = true;
     }
   }
   if (busy) throw new Error('busy');
