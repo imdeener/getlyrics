@@ -61,7 +61,7 @@ Issues and PRs are welcome.
   ```
 
   This needs Node 20 or newer.
-- **Screenshots**: `store/screenshots.js` renders the store images from mock pages that use the real `content.css`, with a made-up song. To regenerate them, run `CHROME=/path/to/chrome node store/screenshots.js`.
+- **Screenshots**: `store/screenshots.js` renders the store images from mock pages that use the real `content.css`, with a made-up song. To regenerate them, run `CHROME=/path/to/chrome node store/screenshots.js`. The icons come from `python3 store/icon.py`, which needs Pillow.
 
 ## Credits
 

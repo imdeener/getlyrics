@@ -52,7 +52,7 @@ function lyricLines({ upTo = 3, partial = 55, hover = false } = {}) {
 
 function panel({ theme = 'auto', body, notice = '', search = false, syncing = false, offset = '+0.0s' }) {
   return `
-  <div id="gl-panel" data-theme="${theme}" class="gl-words ${syncing ? 'gl-syncing' : ''}" style="--gl-auto: hsl(268 45% 24%)">
+  <div id="gl-panel" data-theme="${theme}" class="gl-words ${syncing ? 'gl-syncing' : ''}" style="--gl-auto: hsl(18 32% 20%)">
     <div class="gl-head">
       <div class="gl-label">${song.artist} — ${song.track}</div>
       <button class="gl-btn">−</button><span class="gl-offset">${offset}</span><button class="gl-btn">+</button>
@@ -68,11 +68,10 @@ function panel({ theme = 'auto', body, notice = '', search = false, syncing = fa
 
 const videoArt = `
   background:
-    radial-gradient(circle at 22% 30%, rgb(255 255 255 / .9) 0 1.5px, transparent 2px) 0 0 / 90px 70px,
-    radial-gradient(circle at 70% 60%, rgb(255 255 255 / .6) 0 1px, transparent 1.5px) 0 0 / 130px 110px,
-    radial-gradient(ellipse at 70% 110%, #ff5fa2 0%, transparent 55%),
-    radial-gradient(ellipse at 15% 0%, #4f46e5 0%, transparent 60%),
-    linear-gradient(160deg, #1e1b4b, #581c87 55%, #9d174d);`;
+    radial-gradient(ellipse 60% 30% at 30% 100%, #121418 98%, transparent 100%),
+    radial-gradient(ellipse 70% 26% at 85% 100%, #1a1d22 98%, transparent 100%),
+    radial-gradient(circle at 62% 64%, #f4c67e 0 7%, rgb(244 198 126 / .35) 7.5%, transparent 22%),
+    linear-gradient(180deg, #1f2533 0%, #4a3d4c 45%, #a8644a 72%, #c98a5c 80%);`;
 
 function page({ caption, sub, content }) {
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -80,9 +79,10 @@ function page({ caption, sub, content }) {
   * { box-sizing: border-box; }
   body { margin: 0; width: 1280px; height: 800px; overflow: hidden; background: #0f0f0f; color: #f1f1f1;
          font-family: Roboto, "Helvetica Neue", Arial, sans-serif; }
-  .cap { height: 96px; padding: 20px 40px; background: linear-gradient(90deg, #7c3aed, #db2777); }
-  .cap h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
-  .cap p { margin: 4px 0 0; font-size: 16px; opacity: .9; }
+  .cap { height: 96px; padding: 18px 40px; background: #f2eee6; color: #141413; }
+  .cap h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.015em; }
+  .cap mark { background: linear-gradient(transparent 55%, #ffd23f 55%, #ffd23f 92%, transparent 92%); color: inherit; padding: 0 2px; }
+  .cap p { margin: 6px 0 0; font-size: 16px; color: rgb(20 20 19 / .7); }
   .bar { height: 48px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; }
   .bar div { width: 420px; height: 32px; border: 1px solid #303030; border-radius: 16px; background: #121212; }
   .watch { display: flex; gap: 24px; padding: 20px 24px 0; }
@@ -128,12 +128,12 @@ const results = [
 
 const shots = {
   '1-synced-panel': page({
-    caption: 'Synced lyrics, right beside the video',
+    caption: '<mark>Synced lyrics</mark>, right beside the video',
     sub: "Lines light up as they're sung. Click any line to jump there.",
     content: watch(panel({ body: `<div class="gl-body gl-pad">${lyricLines()}</div>` })),
   }),
   '2-fullscreen': page({
-    caption: 'Sing along in fullscreen',
+    caption: 'Sing along in <mark>fullscreen</mark>',
     sub: 'Karaoke-style word highlighting that works in any language.',
     content: `<div class="full"><div class="progress"><i></i></div>
       <div id="gl-overlay" class="gl-show gl-words" style="bottom: 12%">
@@ -142,7 +142,7 @@ const shots = {
       </div></div>`,
   }),
   '3-quick-sync': page({
-    caption: 'Out of sync? One click fixes it',
+    caption: 'Out of sync? <mark>One click</mark> fixes it',
     sub: 'Press ⏱ and click the line being sung. getlyrics saves the timing for that video.',
     content: watch(
       panel({
@@ -155,7 +155,7 @@ const shots = {
     ),
   }),
   '4-search-and-themes': page({
-    caption: 'Wrong version? Pick the right one',
+    caption: 'Wrong version? <mark>Pick the right one</mark>',
     sub: 'Search LRCLIB and getlyrics remembers your choice. Themes: thumbnail color, dark, or light.',
     content: watch(panel({ theme: 'light', search: true, body: `<div class="gl-body">${results}</div>` })),
   }),
