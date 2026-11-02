@@ -1,0 +1,61 @@
+// Run: node --test
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parseTitle, parseLrc, splitWords, wordTimings } = require('../parse.js');
+
+const titleCases = [
+  // [video title, channel, expected artist, expected track]
+  ['Some Artist - Some Song (Official Music Video)', 'Some Artist', 'Some Artist', 'Some Song'],
+  ['Some Artist - Some Song [HD]', 'SomeArtistVEVO', 'Some Artist', 'Some Song'],
+  ['Some Artist - Some Song (Remix)', 'x', 'Some Artist', 'Some Song (Remix)'],
+  ['Some Artist - Some Song (feat. Guest) [Official Audio]', 'x', 'Some Artist', 'Some Song'],
+  ['Some Artist - Some Song ft. Guest', 'x', 'Some Artist', 'Some Song'],
+  ['Some Song | Official MV', 'Some Band', 'Some Band', 'Some Song'],
+  ['Some Artist - Some Song (Official MV) | Label', 'Label', 'Some Artist', 'Some Song'],
+  ['Some Song', 'Some Artist - Topic', 'Some Artist', 'Some Song'],
+  ["GROUP 'Some Song' M/V", 'Label', 'GROUP', 'Some Song'],
+  ['GROUP (그룹) ‘Some Song’ Official MV', 'Label', 'GROUP', 'Some Song'],
+  ['SINGER(가수) _ Song(노래) MV', 'Label', 'SINGER', 'Song'],
+  ['(G)ROUP - Some Song (Official Music Video)', 'x', '(G)ROUP', 'Some Song'],
+  ['ชื่อเพลง - ศิลปิน【OFFICIAL MV】', 'ค่าย', 'ชื่อเพลง', 'ศิลปิน'], // order swap is tried by background.js
+  ['ชื่อเพลง - ศิลปิน ฟีท แขกรับเชิญ [เนื้อเพลง]', 'x', 'ชื่อเพลง', 'ศิลปิน'],
+];
+
+for (const [title, channel, artist, track] of titleCases) {
+  test(`parseTitle: ${title}`, () => {
+    const r = parseTitle(title, channel);
+    assert.equal(r.artist, artist);
+    assert.equal(r.track, track);
+  });
+}
+
+test('parseLrc: sorts, expands multi-stamp lines, keeps empty lines', () => {
+  const lines = parseLrc('[00:10.00][00:30.00]b\n[00:01.50]a\n[00:05.00]\nno stamp');
+  assert.deepEqual(
+    lines.map((l) => [l.time, l.text]),
+    [[1.5, 'a'], [5, ''], [10, 'b'], [30, 'b']],
+  );
+});
+
+test('parseLrc: enhanced LRC word stamps', () => {
+  const [line] = parseLrc('[00:20.00]<00:20.00>one <00:20.50>two <00:21.20>three<00:22.00>');
+  assert.equal(line.text, 'one two three');
+  const words = wordTimings(line);
+  assert.deepEqual(
+    words.map((w) => [w.text, w.start, w.end]),
+    [['one ', 20, 20.5], ['two ', 20.5, 21.2], ['three', 21.2, 22]],
+  );
+});
+
+test('splitWords: Thai has no spaces but splits into words', () => {
+  assert.deepEqual(splitWords('วันนี้อากาศดี'), ['วัน', 'นี้', 'อากาศ', 'ดี']);
+  assert.deepEqual(splitWords('hello, world!'), ['hello, ', 'world!']);
+});
+
+test('wordTimings: estimates stay inside the line and before the next line', () => {
+  const [line, next] = parseLrc('[00:10.00]a fairly long line of words\n[00:12.00]next');
+  const words = wordTimings(line, next.time);
+  assert.equal(words[0].start, 10);
+  assert.ok(words.at(-1).end <= 12);
+  words.forEach((w, i) => i && assert.equal(w.start, words[i - 1].end));
+});

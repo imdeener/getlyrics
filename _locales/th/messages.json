@@ -1,0 +1,67 @@
+{
+  "extDescription": {
+    "message": "แสดงเนื้อเพลงซิงก์ข้างตัวเล่น YouTube จาก LRCLIB"
+  },
+  "wordButton": {
+    "message": "คำ"
+  },
+  "wordTitle": {
+    "message": "ไฮไลต์ทีละคำ"
+  },
+  "offsetLater": {
+    "message": "เนื้อเพลงช้าลง 0.5 วินาที"
+  },
+  "offsetEarlier": {
+    "message": "เนื้อเพลงเร็วขึ้น 0.5 วินาที"
+  },
+  "searchTitle": {
+    "message": "ค้นหาเนื้อเพลงเอง"
+  },
+  "searchPlaceholder": {
+    "message": "ศิลปิน ชื่อเพลง แล้วกด Enter"
+  },
+  "themeTitle": {
+    "message": "ธีม: $THEME$ (กดเพื่อเปลี่ยน)",
+    "placeholders": {
+      "theme": {
+        "content": "$1"
+      }
+    }
+  },
+  "theme_auto": {
+    "message": "สีตามปกวิดีโอ"
+  },
+  "theme_dark": {
+    "message": "มืด"
+  },
+  "theme_light": {
+    "message": "สว่าง"
+  },
+  "notFound": {
+    "message": "ไม่พบเนื้อเพลง กด ⌕ เพื่อค้นหาเอง"
+  },
+  "instrumental": {
+    "message": "เพลงบรรเลง"
+  },
+  "noResults": {
+    "message": "ไม่พบผลลัพธ์"
+  },
+  "synced": {
+    "message": "ซิงก์"
+  },
+  "unsynced": {
+    "message": "ไม่ซิงก์"
+  },
+  "searching": {
+    "message": "กำลังค้นหา…"
+  },
+  "searchFailed": {
+    "message": "ค้นหาไม่สำเร็จ"
+  },
+  "loading": {
+    "message": "กำลังค้นหาเนื้อเพลง…"
+  },
+  "loadFailed": {
+    "message": "โหลดเนื้อเพลงไม่สำเร็จ"
+  }
+}

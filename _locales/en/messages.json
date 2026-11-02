@@ -1,0 +1,67 @@
+{
+  "extDescription": {
+    "message": "Synced lyrics beside the YouTube player, powered by LRCLIB."
+  },
+  "wordButton": {
+    "message": "Word"
+  },
+  "wordTitle": {
+    "message": "Word-by-word highlight"
+  },
+  "offsetLater": {
+    "message": "Lyrics 0.5s later"
+  },
+  "offsetEarlier": {
+    "message": "Lyrics 0.5s earlier"
+  },
+  "searchTitle": {
+    "message": "Search lyrics manually"
+  },
+  "searchPlaceholder": {
+    "message": "Artist and song, then press Enter"
+  },
+  "themeTitle": {
+    "message": "Theme: $THEME$ (click to change)",
+    "placeholders": {
+      "theme": {
+        "content": "$1"
+      }
+    }
+  },
+  "theme_auto": {
+    "message": "video thumbnail color"
+  },
+  "theme_dark": {
+    "message": "dark"
+  },
+  "theme_light": {
+    "message": "light"
+  },
+  "notFound": {
+    "message": "No lyrics found. Press ⌕ to search manually"
+  },
+  "instrumental": {
+    "message": "Instrumental"
+  },
+  "noResults": {
+    "message": "No results"
+  },
+  "synced": {
+    "message": "synced"
+  },
+  "unsynced": {
+    "message": "not synced"
+  },
+  "searching": {
+    "message": "Searching…"
+  },
+  "searchFailed": {
+    "message": "Search failed"
+  },
+  "loading": {
+    "message": "Finding lyrics…"
+  },
+  "loadFailed": {
+    "message": "Could not load lyrics"
+  }
+}
