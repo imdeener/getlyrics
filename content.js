@@ -17,7 +17,9 @@ let active = -1;
 let offset = 0; // seconds, user-adjustable for MVs with intros
 let userScrollUntil = 0;
 let panel, body, label, offsetLabel, searchBox, searchInput, themeBtn, wordBtn;
-let notice; // duration-mismatch hint above the lyrics
+let notice; // hint above the lyrics: duration mismatch or sync-mode prompt
+let syncBtn;
+let syncMode = false;
 let keepTop; // MutationObserver keeping the panel first in the sidebar
 let overlay, overlayCur, overlayNext; // fullscreen lyrics, lives inside #movie_player
 
@@ -82,7 +84,7 @@ function buildPanel() {
   panel.id = 'gl-panel';
   label = el('div', 'gl-label');
   offsetLabel = el('span', 'gl-offset');
-  offsetLabel.title = t('syncHint');
+  syncBtn = button('⏱', t('syncTitle'), () => setSyncMode(!syncMode));
   themeBtn = button('◐', '', cycleTheme);
   wordBtn = button(t('wordButton'), t('wordTitle'), toggleWords);
   const head = el('div', 'gl-head');
@@ -91,6 +93,7 @@ function buildPanel() {
     button('−', t('offsetLater'), () => setOffset(offset - 0.5, true)),
     offsetLabel,
     button('+', t('offsetEarlier'), () => setOffset(offset + 0.5, true)),
+    syncBtn,
     button('⌕', t('searchTitle'), () => toggleSearch()),
     wordBtn,
     themeBtn,
@@ -201,8 +204,17 @@ function updateOverlay(i) {
   overlay.classList.toggle('gl-show', !!(cur || next));
 }
 
+// Sync mode: the next line click means "this line is being sung now" (same as Alt+click).
+function setSyncMode(on) {
+  syncMode = on && lines.length > 0;
+  panel.classList.toggle('gl-syncing', syncMode);
+  syncBtn.classList.toggle('gl-on', syncMode);
+  notice.textContent = t('syncPrompt');
+  notice.hidden = !syncMode;
+}
+
 function setStatus(text) {
-  notice.hidden = true;
+  setSyncMode(false);
   lines = [];
   updateOverlay(-1);
   active = -1;
@@ -210,6 +222,7 @@ function setStatus(text) {
 }
 
 function render(hit) {
+  setSyncMode(false);
   label.textContent = hit ? `${hit.artistName} — ${hit.trackName}` : metaLabel();
   if (!hit) return setStatus(t('notFound'));
   if (hit.instrumental) return setStatus(`♪ ${t('instrumental')}`);
@@ -226,10 +239,10 @@ function render(hit) {
     e.onclick = (ev) => {
       const v = video();
       if (!v) return;
-      if (ev.altKey) {
+      if (ev.altKey || syncMode) {
         // "This line starts now": derive the offset from the playhead instead of seeking.
         setOffset(l.time - v.currentTime, true);
-        notice.hidden = true;
+        setSyncMode(false);
       } else {
         v.currentTime = Math.max(0, l.time - offset);
       }

@@ -188,3 +188,8 @@
   line-height: 1.5;
 }
 .gl-notice[hidden] { display: none; }
+
+/* Sync mode: make it obvious that clicking a line now sets the timing. */
+.gl-syncing .gl-line { cursor: crosshair; }
+.gl-syncing .gl-line:hover { color: rgb(var(--gl-fg)); outline: 2px dashed rgb(var(--gl-fg) / 0.5); outline-offset: 4px; border-radius: 4px; }
+.gl-syncing .gl-notice { background: rgb(var(--gl-fg) / 0.18); color: rgb(var(--gl-fg)); font-weight: 600; }
