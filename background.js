@@ -56,7 +56,7 @@ async function firstHit(queries) {
   return null;
 }
 
-/* global parseLrc, syncLooksBroken */
+/* global parseLrc, syncLooksBroken, titleKey */
 importScripts('parse.js');
 
 // Broken synced timing is worse than none: demote it to plain lyrics and say why.
@@ -98,9 +98,20 @@ async function findLyrics({ candidates = [], raw, duration, pick }) {
     const hit = await firstHit([[`/get/${pick.id}`, null, same], ...byName]).catch(() => null);
     if (hit) return demoteBrokenSync(hit);
   }
-  const best = (r) => rank(r, duration)[0];
-  // Title-only queries can hit a different song with the same name; require a close duration.
-  const close = (r) => rank(r, duration).find((x) => !duration || Math.abs(x.duration - duration) <= 30);
+  // Title-only and free-text queries return any song sharing a word with the query, e.g.
+  // "PLENG" matching "... Rong Pleng". Their hit must be titled like one of our guesses.
+  const names = new Set(candidates.flatMap((c) => [c.track, ...(c.swap ? [c.artist] : [])]).map(titleKey).filter(Boolean));
+  const named = (x) => names.has(titleKey(x.trackName));
+  // Artist+title lookups are fuzzy too (junk like "04 - [...]" turns up), but our guess may carry
+  // extra words, so for them one title containing the other is enough.
+  const related = (x) => {
+    const k = titleKey(x.trackName);
+    return !!k && [...names].some((n) => k.includes(n) || n.includes(k));
+  };
+  const best = (r) => rank(r, duration).find(related);
+  const bestNamed = (r) => rank(r, duration).find(named);
+  // Title-only matches can still be a different song with the same name; require a close duration.
+  const close = (r) => rank(r, duration).find((x) => named(x) && (!duration || Math.abs(x.duration - duration) <= 30));
   const strict = unique(
     candidates
       .filter((c) => c.artist)
@@ -112,7 +123,7 @@ async function findLyrics({ candidates = [], raw, duration, pick }) {
       ]),
   );
   const loose = unique([...candidates.map((c) => ({ track_name: c.track })), ...candidates.map((c) => ({ q: c.track })), { q: raw }]);
-  return firstHit([...strict.map((q) => ['/search', q, best]), ...loose.map((q) => ['/search', q, close])]);
+  return firstHit([...strict.map((q) => ['/search', q, q.q ? bestNamed : best]), ...loose.map((q) => ['/search', q, close])]);
 }
 
 function hsl(r, g, b) {

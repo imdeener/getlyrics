@@ -117,7 +117,14 @@ function musicFromWatchHtml(html) {
 }
 
 // "Song (7\" Mix) [Thai ver.]" -> "Song"
-const bareTitle = (s) => s.replace(/\s*[(\[【][^)\]】]*[)\]】]/g, '').trim();
+function bareTitle(s) {
+  return s.replace(/\s*[(\[【][^)\]】]*[)\]】]/g, '').trim();
+}
+
+// Comparable form of a song title: ignores case, spacing, punctuation and bracketed versions.
+function titleKey(s) {
+  return bareTitle(s || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+}
 
 // Ordered, de-duplicated {artist, track, swap} guesses: each source as-is, then without brackets.
 // swap: the artist/track order is a guess (from the video title), so background.js also tries it reversed.
@@ -144,6 +151,7 @@ if (typeof module !== 'undefined') {
     syncLooksBroken,
     musicFromWatchHtml,
     bareTitle,
+    titleKey,
     searchCandidates,
   };
 }

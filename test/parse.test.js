@@ -116,3 +116,11 @@ test('syncLooksBroken: normal and fast songs pass', () => {
   assert.equal(syncLooksBroken(lrcAt(Array.from({ length: 90 }, (_, i) => 8 + i * 1.6)), 160), false); // fast rap
   assert.equal(syncLooksBroken(lrcAt([45, 50]), 200), false); // long intro is fine
 });
+
+const { titleKey } = require('../parse.js');
+
+test('titleKey: same song despite case, punctuation, and versions; different songs differ', () => {
+  assert.equal(titleKey('Never Gonna Give You Up (7" Mix)'), titleKey('never gonna give you up'));
+  assert.equal(titleKey('ชื่อเพลง [Thai ver.]'), titleKey('ชื่อเพลง'));
+  assert.notEqual(titleKey('Chan Ja Sorn Hai Loke Rong Pleng'), titleKey('PLENG'));
+});
