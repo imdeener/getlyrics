@@ -4,14 +4,16 @@ const BASE = 'https://lrclib.net/api';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const cache = new Map(); // url -> response, so revisiting a video doesn't hit LRCLIB again
 
-// LRCLIB answers 503/429 when it's overloaded: back off and retry, then fail as 'busy'
+// LRCLIB answers 503/429 when it's overloaded (and the network can drop): back off and retry, then fail as 'busy'
 // so the UI can say "try again" instead of a false "no lyrics found".
 async function api(path, params) {
   const url = BASE + path + (params ? `?${new URLSearchParams(params)}` : '');
   if (cache.has(url)) return cache.get(url);
   for (const wait of [1000, 3000, 0]) {
-    const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } });
-    if (res.status === 503 || res.status === 429) {
+    const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } }).catch(
+      () => null, // network error: retry like an overload
+    );
+    if (!res || res.status === 503 || res.status === 429) {
       if (wait) await sleep(wait);
       continue;
     }

@@ -32,8 +32,16 @@ async function send(msg) {
   try {
     return await chrome.runtime.sendMessage(msg);
   } catch (e) {
-    return { error: String(e) }; // e.g. extension reloaded under an open tab
+    // After the extension is updated or reloaded, scripts already in open tabs lose their connection.
+    if (!chrome.runtime?.id || /context invalidated/i.test(e.message)) return { error: 'reload' };
+    return { error: String(e) };
   }
+}
+
+// Map a failed response to the message the user can act on, and keep the raw error in the console.
+function failure(res, fallback) {
+  if (!['busy', 'reload'].includes(res.error)) console.warn('[getlyrics]', res.error);
+  return setStatus(t({ busy: 'busy', reload: 'reloadPage' }[res.error] || fallback));
 }
 
 function el(tag, cls, text) {
@@ -310,7 +318,7 @@ async function manualSearch(q) {
   setStatus(t('searching'));
   const res = await send({ type: 'search', q });
   if (my !== token) return;
-  if (res?.error) return setStatus(t(res.error === 'busy' ? 'busy' : 'searchFailed'));
+  if (res?.error) return failure(res, 'searchFailed');
   renderResults(res.results);
 }
 
@@ -378,7 +386,7 @@ async function onNavigate() {
 
   const res = await send({ type: 'lyrics', ...meta, pickId: settings.picks[id] });
   if (my !== token) return;
-  if (res?.error) return setStatus(t(res.error === 'busy' ? 'busy' : 'loadFailed'));
+  if (res?.error) return failure(res, 'loadFailed');
   render(res.hit);
 }
 
