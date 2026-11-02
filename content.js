@@ -20,6 +20,8 @@ let panel, body, label, offsetLabel, searchBox, searchInput, themeBtn, wordBtn;
 let notice; // hint above the lyrics: duration mismatch or sync-mode prompt
 let syncBtn;
 let syncMode = false;
+let currentHit = null; // what render() last showed, restored when search closes without a pick
+let showingResults = false;
 let keepTop; // MutationObserver keeping the panel first in the sidebar
 let overlay, overlayCur, overlayNext; // fullscreen lyrics, lives inside #movie_player
 
@@ -138,7 +140,8 @@ function buildPanel() {
   // Keep YouTube's single-key shortcuts (k, f, j...) from firing while typing.
   for (const type of ['keydown', 'keyup', 'keypress']) searchInput.addEventListener(type, (e) => e.stopPropagation());
   searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && searchInput.value.trim()) manualSearch(searchInput.value.trim());
+    // isComposing: Enter that confirms a Japanese/Chinese IME candidate is not a submit.
+    if (e.key === 'Enter' && !e.isComposing && searchInput.value.trim()) manualSearch(searchInput.value.trim());
     if (e.key === 'Escape') toggleSearch(false);
   });
   searchBox = el('div', 'gl-search');
@@ -185,9 +188,13 @@ function setOffset(v, persist) {
 
 function toggleSearch(force) {
   searchBox.hidden = !(force ?? searchBox.hidden);
-  if (searchBox.hidden) return;
-  // "A - B" in whatever order we guessed; the search tries both orders.
-  searchInput.value = [meta?.artist, meta?.track].filter(Boolean).join(' - ');
+  if (searchBox.hidden) {
+    // Closed without picking a result: bring the lyrics back instead of leaving the list up.
+    if (showingResults) render(currentHit);
+    return;
+  }
+  // "A - B" in whatever order we guessed; the search tries both orders. Keep the user's edits.
+  if (!searchInput.value) searchInput.value = [meta?.artist, meta?.track].filter(Boolean).join(' - ');
   searchInput.focus();
   searchInput.select();
 }
@@ -257,10 +264,13 @@ function setStatus(text) {
 }
 
 function render(hit) {
+  currentHit = hit;
+  showingResults = false;
   setSyncMode(false);
   label.textContent = hit ? `${hit.artistName} — ${hit.trackName}` : metaLabel();
   if (!hit) return setStatus(t('notFound'));
   if (hit.instrumental) return setStatus(`♪ ${t('instrumental')}`);
+  if (!hit.syncedLyrics && !hit.plainLyrics) return setStatus(t('notFound'));
   if (!hit.syncedLyrics) {
     setStatus('');
     show([el('div', 'gl-plain', hit.plainLyrics)], false);
@@ -311,8 +321,8 @@ function renderResults(results) {
         // Remembered for this video; the name lets us find it again if lookups by id are busy.
         settings.picks[currentId] = { id: r.id, artist: r.artistName, track: r.trackName };
         save('picks');
+        render(r); // first, so closing the search doesn't restore the previous lyrics
         toggleSearch(false);
-        render(r);
       };
       return item;
     }),
@@ -322,6 +332,7 @@ function renderResults(results) {
 
 async function manualSearch(text) {
   const my = token;
+  showingResults = true;
   setStatus(t('searching'));
   const res = await send({ type: 'search', text });
   if (my !== token) return;
@@ -372,8 +383,11 @@ function pickFor(id) {
 async function onNavigate() {
   const id = location.pathname === '/watch' && new URLSearchParams(location.search).get('v');
   if (!id) {
-    panel?.remove();
+    token++; // cancel any lookup still in flight for the previous video
     currentId = null;
+    lines = [];
+    updateOverlay(-1);
+    panel?.remove();
     return;
   }
   if (id === currentId && panel?.isConnected) return;
@@ -383,7 +397,10 @@ async function onNavigate() {
   await ready;
   await mount();
   setOffset(settings.offsets[id] || 0);
+  showingResults = false;
+  currentHit = null;
   toggleSearch(false);
+  searchInput.value = '';
   meta = null;
   label.textContent = '';
   setStatus(t('loading'));

@@ -24,11 +24,12 @@ async function api(path, params) {
     const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } }).catch(
       () => null, // network error: retry like an overload
     );
-    if (!res || res.status === 503 || res.status === 429) {
+    // 5xx (503 overload, 502/504 from the CDN...) and 429 are worth retrying and must not be cached.
+    if (!res || res.status >= 500 || res.status === 429) {
       if (wait) await sleep(wait);
       continue;
     }
-    const body = res.ok ? await res.json() : null;
+    const body = res.ok ? await res.json().catch(() => null) : null; // e.g. an HTML error page
     cache.set(url, body);
     if (cache.size > 300) cache.delete(cache.keys().next().value);
     return body;
@@ -72,7 +73,7 @@ function demoteBrokenSync(r) {
 
 // Synced first, then closest duration to the video.
 function rank(results, duration) {
-  const diff = (r) => (duration ? Math.abs(r.duration - duration) : 0);
+  const diff = (r) => (duration ? Math.abs((r.duration || 0) - duration) : 0);
   return (Array.isArray(results) ? results : []) // LRCLIB can answer with an error object
     .map(demoteBrokenSync)
     .filter((r) => r.syncedLyrics || r.plainLyrics || r.instrumental)
@@ -159,6 +160,18 @@ async function thumbColor(id) {
   return `hsl(${h} ${Math.min(s, 55)}% 24%)`;
 }
 
+// Fuzzy search returns strays (the swapped-order query especially), so order manual results by how
+// well title and artist match what was typed, then synced first. Strays sink, they aren't hidden.
+function byRelevance(results, parts) {
+  const keys = parts.map(titleKey).filter(Boolean);
+  const hits = (s) => {
+    const k = titleKey(s);
+    return !!k && keys.some((p) => k.includes(p) || p.includes(k));
+  };
+  const score = (r) => hits(r.trackName) + hits(r.artistName);
+  return rank(results).sort((x, y) => score(y) - score(x) || !!y.syncedLyrics - !!x.syncedLyrics);
+}
+
 const handlers = {
   lyrics: async (msg) => ({ hit: await findLyrics(msg) }),
   // Manual search takes one free-form box. "A - B" is tried as artist+title both ways (the lookup
@@ -181,7 +194,7 @@ const handlers = {
           if (!q.q) busy = true;
         }
       }
-      if (found.size) return { results: rank([...found.values()]).slice(0, 10) };
+      if (found.size) return { results: byRelevance([...found.values()], parts).slice(0, 10) };
     }
     if (busy) throw new Error('busy');
     return { results: [] };

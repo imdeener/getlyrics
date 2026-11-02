@@ -62,6 +62,7 @@ Issues and PRs are welcome.
   ```
 
   This needs Node 20 or newer.
+- **End-to-end**: `e2e/youtube.js` loads the extension into Chrome for Testing and checks every feature on real youtube.com. It isn't part of CI. The header of the file explains how to run it.
 - **Screenshots**: `store/screenshots.js` renders the store images from mock pages that use the real `content.css`, with a made-up song. To regenerate them, run `CHROME=/path/to/chrome node store/screenshots.js`. The icons come from `python3 store/icon.py`, which needs Pillow.
 
 ## Credits
