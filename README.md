@@ -20,9 +20,9 @@ Real-time synced lyrics beside the YouTube player, with karaoke-style word highl
 
 From source (until it's on the Chrome Web Store):
 
-1. Clone the repo: `git clone https://github.com/imdeener/getlyrics`. Or download it as a ZIP and unzip it.
+1. Download `getlyrics-x.y.z.zip` from the [latest release](https://github.com/imdeener/getlyrics/releases/latest) and unzip it. Or clone the repo.
 2. Open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the repo folder.
+3. Click **Load unpacked** and select the unzipped (or cloned) folder.
 4. Open any music video on youtube.com.
 
 ## How it works
