@@ -26,6 +26,7 @@ function parseTitle(title, channel = '') {
 
   let artist = '';
   let track = t;
+  let fromChannel = false; // artist is only the uploader's name, a weak guess
 
   // "A - B": order is ambiguous (Thai titles are often "Song - Artist"); background tries both.
   const dash = t.match(/^(.*?)\s+[-–—_]\s+(.*)$/);
@@ -33,10 +34,13 @@ function parseTitle(title, channel = '') {
   const quoted = t.match(/^(.*?)\s*['"‘“]([^'"’”]+)['"’”]/);
   if (dash) [, artist, track] = dash;
   else if (quoted && quoted[1].trim()) [, artist, track] = quoted;
-  else artist = cleanArtist(channel);
+  else {
+    artist = cleanArtist(channel);
+    fromChannel = true;
+  }
 
   const tidy = (s) => s.replace(CJK_PAREN, '').replace(FEAT, '').replace(/^['"‘“]|['"’”]$/g, '').replace(/\s+/g, ' ').trim();
-  return { artist: tidy(artist), track: tidy(track), raw: t.replace(/\s+/g, ' ').trim() };
+  return { artist: tidy(artist), track: tidy(track), raw: t.replace(/\s+/g, ' ').trim(), fromChannel };
 }
 
 // Supports enhanced LRC word stamps: [00:12.00]<00:12.00>word <00:12.40>word
@@ -126,8 +130,9 @@ function titleKey(s) {
   return bareTitle(s || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
 }
 
-// Ordered, de-duplicated {artist, track, swap} guesses: each source as-is, then without brackets.
+// Ordered, de-duplicated {artist, track, swap, weak} guesses: each source as-is, then without brackets.
 // swap: the artist/track order is a guess (from the video title), so background.js also tries it reversed.
+// weak: the artist is just the channel name, so a match by another artist is still allowed.
 function searchCandidates(...sources) {
   const out = [];
   const seen = new Set();
@@ -136,7 +141,7 @@ function searchCandidates(...sources) {
       const key = `${s.artist}\n${track}`.toLowerCase();
       if (!track || seen.has(key)) continue;
       seen.add(key);
-      out.push({ artist: s.artist || '', track, swap: !!s.swap });
+      out.push({ artist: s.artist || '', track, swap: !!s.swap, weak: !!s.fromChannel });
     }
   }
   return out;

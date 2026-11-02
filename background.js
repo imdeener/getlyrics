@@ -111,10 +111,28 @@ async function findLyrics({ candidates = [], raw, duration, pick }) {
     const k = titleKey(x.trackName);
     return !!k && [...names].some((n) => k.includes(n) || n.includes(k));
   };
-  const best = (r) => rank(r, duration).find(related);
-  const bestNamed = (r) => rank(r, duration).find(named);
+  // Short titles repeat across artists ("GenZ" by RESOA vs. by Polimá Westcoast). When the artist is
+  // known (from "A - B" in the title, either order, or YouTube's credits) the match must be by them.
+  // A channel-name guess (weak) can't rule anyone out.
+  const artists = [
+    ...new Set(
+      candidates
+        .filter((c) => !c.weak && c.artist)
+        .flatMap((c) => [c.artist, ...(c.swap ? [c.track] : [])])
+        .map(titleKey)
+        .filter(Boolean),
+    ),
+  ];
+  const byArtist = (x) => {
+    if (!artists.length) return true;
+    const k = titleKey(x.artistName);
+    return !!k && artists.some((a) => k.includes(a) || a.includes(k));
+  };
+  const best = (r) => rank(r, duration).find((x) => related(x) && byArtist(x));
+  const bestNamed = (r) => rank(r, duration).find((x) => named(x) && byArtist(x));
   // Title-only matches can still be a different song with the same name; require a close duration.
-  const close = (r) => rank(r, duration).find((x) => named(x) && (!duration || Math.abs(x.duration - duration) <= 30));
+  const close = (r) =>
+    rank(r, duration).find((x) => named(x) && byArtist(x) && (!duration || Math.abs((x.duration || 0) - duration) <= 30));
   const strict = unique(
     candidates
       .filter((c) => c.artist)

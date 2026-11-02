@@ -95,10 +95,17 @@ test('searchCandidates: music credit first, then title guess, bare variants, no 
   const music = { artist: 'Some Artist', track: 'Some Song (Remix)' };
   const parsed = { artist: 'Some Artist', track: 'Some Song', swap: true };
   assert.deepEqual(searchCandidates(music, parsed), [
-    { artist: 'Some Artist', track: 'Some Song (Remix)', swap: false },
-    { artist: 'Some Artist', track: 'Some Song', swap: false },
+    { artist: 'Some Artist', track: 'Some Song (Remix)', swap: false, weak: false },
+    { artist: 'Some Artist', track: 'Some Song', swap: false, weak: false },
   ]);
-  assert.deepEqual(searchCandidates(null, parsed), [{ artist: 'Some Artist', track: 'Some Song', swap: true }]);
+  assert.deepEqual(searchCandidates(null, parsed), [{ artist: 'Some Artist', track: 'Some Song', swap: true, weak: false }]);
+});
+
+test('parseTitle/searchCandidates: an artist taken from the channel name is weak', () => {
+  const p = parseTitle('Some Song | Official MV', 'Some Label');
+  assert.equal(p.fromChannel, true);
+  assert.equal(searchCandidates({ ...p, swap: true })[0].weak, true);
+  assert.equal(parseTitle('Artist - Song', 'x').fromChannel, false);
 });
 
 const { syncLooksBroken } = require('../parse.js');
