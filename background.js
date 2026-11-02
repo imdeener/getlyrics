@@ -1,10 +1,26 @@
 // Network lives here (not in the content script) so YouTube's CORS/CSP never apply.
 const BASE = 'https://lrclib.net/api';
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const cache = new Map(); // url -> response, so revisiting a video doesn't hit LRCLIB again
+
+// LRCLIB answers 503/429 when it's overloaded: back off and retry, then fail as 'busy'
+// so the UI can say "try again" instead of a false "no lyrics found".
 async function api(path, params) {
-  const qs = params ? `?${new URLSearchParams(params)}` : '';
-  const res = await fetch(BASE + path + qs, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } });
-  return res.ok ? res.json() : null;
+  const url = BASE + path + (params ? `?${new URLSearchParams(params)}` : '');
+  if (cache.has(url)) return cache.get(url);
+  for (const wait of [1000, 3000, 0]) {
+    const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } });
+    if (res.status === 503 || res.status === 429) {
+      if (wait) await sleep(wait);
+      continue;
+    }
+    const body = res.ok ? await res.json() : null;
+    cache.set(url, body);
+    if (cache.size > 300) cache.delete(cache.keys().next().value);
+    return body;
+  }
+  throw new Error('busy');
 }
 
 /* global parseLrc, syncLooksBroken */
@@ -110,6 +126,6 @@ const handlers = {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handler = handlers[msg.type];
   if (!handler) return;
-  handler(msg).then(sendResponse, (e) => sendResponse({ error: String(e) }));
+  handler(msg).then(sendResponse, (e) => sendResponse({ error: e.message === 'busy' ? 'busy' : String(e) }));
   return true; // async response
 });

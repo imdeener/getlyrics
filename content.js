@@ -310,7 +310,7 @@ async function manualSearch(q) {
   setStatus(t('searching'));
   const res = await send({ type: 'search', q });
   if (my !== token) return;
-  if (res?.error) return setStatus(t('searchFailed'));
+  if (res?.error) return setStatus(t(res.error === 'busy' ? 'busy' : 'searchFailed'));
   renderResults(res.results);
 }
 
@@ -378,7 +378,7 @@ async function onNavigate() {
 
   const res = await send({ type: 'lyrics', ...meta, pickId: settings.picks[id] });
   if (my !== token) return;
-  if (res?.error) return setStatus(t('loadFailed'));
+  if (res?.error) return setStatus(t(res.error === 'busy' ? 'busy' : 'loadFailed'));
   render(res.hit);
 }
 
