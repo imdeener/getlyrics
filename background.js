@@ -3,7 +3,7 @@ const BASE = 'https://lrclib.net/api';
 
 async function api(path, params) {
   const qs = params ? `?${new URLSearchParams(params)}` : '';
-  const res = await fetch(BASE + path + qs, { headers: { 'Lrclib-Client': 'getlyrics/0.2.0' } });
+  const res = await fetch(BASE + path + qs, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } });
   return res.ok ? res.json() : null;
 }
 
