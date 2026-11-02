@@ -59,3 +59,44 @@ test('wordTimings: estimates stay inside the line and before the next line', () 
   assert.ok(words.at(-1).end <= 12);
   words.forEach((w, i) => i && assert.equal(w.start, words[i - 1].end));
 });
+
+const { musicFromWatchHtml, bareTitle, searchCandidates } = require('../parse.js');
+
+// Minimal stand-in for a watch page: ytInitialData with a "Music" card list.
+const watchPage = (cards, iconName = 'MUSIC') => {
+  const data = {
+    engagementPanels: [{ structuredDescriptionContentRenderer: { items: [{ horizontalCardListRenderer: {
+      cards: cards.map(([title, subtitle]) => ({ videoAttributeViewModel: { title, subtitle } })),
+      footerButton: { buttonViewModel: { iconName } },
+    } }] } }],
+  };
+  return `<script>var ytInitialData = ${JSON.stringify(data)};</script>`;
+};
+
+test('musicFromWatchHtml: reads the single song credit', () => {
+  assert.deepEqual(musicFromWatchHtml(watchPage([['Some Song (7" Mix)', 'Some Artist']])), {
+    track: 'Some Song (7" Mix)',
+    artist: 'Some Artist',
+  });
+});
+
+test('musicFromWatchHtml: ignores compilations, non-music cards, and pages without data', () => {
+  assert.equal(musicFromWatchHtml(watchPage([['A', 'X'], ['B', 'Y']])), null);
+  assert.equal(musicFromWatchHtml(watchPage([['A', 'X']], 'GAMING')), null);
+  assert.equal(musicFromWatchHtml('<html></html>'), null);
+});
+
+test('bareTitle strips bracketed versions', () => {
+  assert.equal(bareTitle('Some Song (7" Mix) [Thai ver.]'), 'Some Song');
+  assert.equal(bareTitle('Some Song'), 'Some Song');
+});
+
+test('searchCandidates: music credit first, then title guess, bare variants, no duplicates', () => {
+  const music = { artist: 'Some Artist', track: 'Some Song (Remix)' };
+  const parsed = { artist: 'Some Artist', track: 'Some Song', swap: true };
+  assert.deepEqual(searchCandidates(music, parsed), [
+    { artist: 'Some Artist', track: 'Some Song (Remix)', swap: false },
+    { artist: 'Some Artist', track: 'Some Song', swap: false },
+  ]);
+  assert.deepEqual(searchCandidates(null, parsed), [{ artist: 'Some Artist', track: 'Some Song', swap: true }]);
+});

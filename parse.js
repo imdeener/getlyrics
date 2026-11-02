@@ -86,4 +86,44 @@ function wordTimings(line, next) {
   });
 }
 
-if (typeof module !== 'undefined') module.exports = { parseTitle, parseLrc, splitWords, wordTimings };
+// YouTube's "Music" description section (song credits) from a watch page's ytInitialData.
+// Found by its MUSIC icon, so it works in every UI language. Skips compilations (more than one song).
+function musicFromWatchHtml(html) {
+  const m = html.match(/var ytInitialData = (\{.*?\});<\/script>/s);
+  if (!m) return null;
+  let card = null;
+  (function walk(o) {
+    if (card || !o || typeof o !== 'object') return;
+    const c = o.horizontalCardListRenderer;
+    if (c?.footerButton?.buttonViewModel?.iconName === 'MUSIC') card = c;
+    else for (const k in o) walk(o[k]);
+  })(JSON.parse(m[1]));
+  const songs = (card?.cards || []).map((c) => c.videoAttributeViewModel).filter(Boolean);
+  if (songs.length !== 1) return null;
+  const text = (v) => (typeof v === 'string' ? v : v?.content || '').trim();
+  const song = { track: text(songs[0].title), artist: text(songs[0].subtitle) };
+  return song.track ? song : null;
+}
+
+// "Song (7\" Mix) [Thai ver.]" -> "Song"
+const bareTitle = (s) => s.replace(/\s*[(\[【][^)\]】]*[)\]】]/g, '').trim();
+
+// Ordered, de-duplicated {artist, track, swap} guesses: each source as-is, then without brackets.
+// swap: the artist/track order is a guess (from the video title), so background.js also tries it reversed.
+function searchCandidates(...sources) {
+  const out = [];
+  const seen = new Set();
+  for (const s of sources.filter(Boolean)) {
+    for (const track of [s.track, bareTitle(s.track)]) {
+      const key = `${s.artist}\n${track}`.toLowerCase();
+      if (!track || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ artist: s.artist || '', track, swap: !!s.swap });
+    }
+  }
+  return out;
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { parseTitle, parseLrc, splitWords, wordTimings, musicFromWatchHtml, bareTitle, searchCandidates };
+}

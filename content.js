@@ -1,4 +1,4 @@
-/* global parseTitle, parseLrc, wordTimings */
+/* global parseTitle, parseLrc, wordTimings, musicFromWatchHtml, searchCandidates */
 // YouTube is an SPA: react to yt-navigate-finish, find title, fetch lyrics, sync to <video>.
 // No innerHTML anywhere — YouTube enforces Trusted Types.
 
@@ -66,7 +66,19 @@ async function waitFor(fn, timeout) {
 }
 
 // The h1 lags behind navigation; wait until it changes (or give up after 5s).
-async function readMeta() {
+// Song credits from YouTube's "Music" section beat guessing from the title. Fetched by video id
+// (same-origin, so it uses the user's session and language) to avoid reading a stale SPA DOM.
+async function fetchMusic(id) {
+  try {
+    const res = await fetch(`/watch?v=${encodeURIComponent(id)}`);
+    return res.ok ? musicFromWatchHtml(await res.text()) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readMeta(id) {
+  const musicP = fetchMusic(id);
   const h1 = () => $('ytd-watch-metadata h1')?.textContent.trim();
   const title =
     (await waitFor(() => (h1() && h1() !== lastTitle ? h1() : null), 5000)) ||
@@ -76,7 +88,16 @@ async function readMeta() {
   const channel = $('ytd-watch-metadata ytd-channel-name a')?.textContent.trim() || '';
   await waitFor(() => !adShowing() && isFinite(video()?.duration), 10000);
   const duration = !adShowing() && isFinite(video()?.duration) ? Math.round(video().duration) : undefined;
-  return { ...parseTitle(title, channel), duration };
+  const parsed = parseTitle(title, channel);
+  const music = await musicP;
+  const best = music || parsed;
+  return {
+    artist: best.artist,
+    track: best.track,
+    raw: parsed.raw,
+    duration,
+    candidates: searchCandidates(music, { ...parsed, swap: true }),
+  };
 }
 
 function buildPanel() {
@@ -348,7 +369,7 @@ async function onNavigate() {
     if (my === token && r?.color) panel.style.setProperty('--gl-auto', r.color);
   });
 
-  meta = await readMeta();
+  meta = await readMeta(id);
   if (my !== token) return;
   label.textContent = metaLabel();
 

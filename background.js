@@ -17,19 +17,34 @@ function rank(results, duration) {
 
 const filled = (q) => Object.values(q).every(Boolean);
 
-async function findLyrics({ artist, track, raw, duration, pickId }) {
+// Ordered, de-duplicated query list.
+function unique(queries) {
+  const seen = new Set();
+  return queries.filter((q) => {
+    const key = JSON.stringify(q).toLowerCase();
+    return filled(q) && !seen.has(key) && seen.add(key);
+  });
+}
+
+// candidates: [{artist, track, swap}] best guess first (see searchCandidates in parse.js).
+// Queries run one at a time and stop at the first hit, to go easy on LRCLIB.
+async function findLyrics({ candidates = [], raw, duration, pickId }) {
   if (pickId) {
     const hit = await api(`/get/${pickId}`);
     if (hit) return hit;
   }
-  // Both orders: Thai titles are often "Song - Artist".
-  const strict = [
-    { track_name: track, artist_name: artist },
-    { track_name: artist, artist_name: track },
-    { q: `${artist} ${track}` },
-  ].filter((q) => artist && filled(q));
+  const strict = unique(
+    candidates
+      .filter((c) => c.artist)
+      .flatMap((c) => [
+        { track_name: c.track, artist_name: c.artist },
+        // Title order is a guess: Thai titles are often "Song - Artist".
+        ...(c.swap ? [{ track_name: c.artist, artist_name: c.track }] : []),
+        { q: `${c.artist} ${c.track}` },
+      ]),
+  );
   // Title-only queries can hit a different song with the same name; require a close duration.
-  const loose = [{ q: track }, { q: raw }].filter(filled);
+  const loose = unique([...candidates.map((c) => ({ q: c.track })), { q: raw }]);
 
   for (const q of strict) {
     const [hit] = rank(await api('/search', q), duration);

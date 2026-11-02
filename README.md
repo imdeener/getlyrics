@@ -4,7 +4,7 @@ Real-time synced lyrics beside the YouTube player, with karaoke-style word highl
 
 ## Features
 
-- **Auto-detects the song** from the video title. Strips clutter like `(Official MV)`, `[HD]`, `| Label`, `feat. ...`. Handles `Artist - Song`, `Song - Artist`, and K-pop style `ARTIST 'Song' M/V`.
+- **Auto-detects the song**: uses the song credits in YouTube's "Music" section when there are any. Otherwise it reads the video title. Strips clutter like `(Official MV)`, `[HD]`, `| Label`, `feat. ...`. Handles `Artist - Song`, `Song - Artist`, and K-pop style `ARTIST 'Song' M/V`. If nothing matches, it retries without version tags like `(Remix)` or `[Thai ver.]`.
 - **Synced lyrics panel** at the top of the sidebar. The current line is highlighted and scrolls into view. Click any line to jump there.
 - **Word-by-word highlight** that fills each word as it's sung. Uses real word timings when the lyrics include them (enhanced LRC). Otherwise it estimates them. Splits words correctly for languages without spaces (Thai, Japanese, Chinese) via `Intl.Segmenter`.
 - **Fullscreen overlay** showing the current and next line over the video.
@@ -37,7 +37,7 @@ No build step and no dependencies.
 
 ## Privacy
 
-getlyrics doesn't collect anything. To find lyrics it sends the detected artist, title, and duration of the video you're watching to `lrclib.net`. It also fetches the video thumbnail from `i.ytimg.com` to pick a theme color. Settings, offsets, and manual picks stay in your browser's local extension storage.
+getlyrics doesn't collect anything. It reads the song credits by loading the current video's YouTube page in the background. To find lyrics it sends the detected artist, title, and duration of the video you're watching to `lrclib.net`. It also fetches the video thumbnail from `i.ytimg.com` to pick a theme color. Settings, offsets, and manual picks stay in your browser's local extension storage.
 
 ## Known limitations
 
