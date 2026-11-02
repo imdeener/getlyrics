@@ -1,4 +1,4 @@
-/* global parseTitle, parseLrc, wordTimings, musicFromWatchHtml, searchCandidates */
+/* global parseTitle, parseLrc, wordTimings, musicFromWatchHtml, searchCandidates, creditMatchesTitle */
 // YouTube is an SPA: react to yt-navigate-finish, find title, fetch lyrics, sync to <video>.
 // No innerHTML anywhere — YouTube enforces Trusted Types.
 
@@ -116,7 +116,8 @@ async function readMeta(id) {
   await waitFor(() => !adShowing() && isFinite(video()?.duration), 10000);
   const duration = !adShowing() && isFinite(video()?.duration) ? Math.round(video().duration) : undefined;
   const parsed = parseTitle(title, channel);
-  const music = await musicP;
+  const credit = await musicP;
+  const music = credit && creditMatchesTitle(credit, title) ? credit : null;
   const best = music || parsed;
   return {
     artist: best.artist,

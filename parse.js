@@ -22,7 +22,8 @@ function parseTitle(title, channel = '') {
     // "A - B | Label" -> keep "A - B"; "Song | Official MV" -> drop the noise segment
     .filter((seg, i, all) => i === 0 || !(NOISE.test(seg) || /\s[-–—_]\s/.test(all[0])))
     .join(' ')
-    .replace(/\s+(official\s+)?(music\s+)?(m\/?v|video|audio|lyrics?(\s+video)?)\s*$/i, '');
+    .replace(/\s+(official\s+)?(music\s+)?(m\/?v|video|audio|lyrics?(\s+video)?)\s*$/i, '')
+    .replace(/[\s+&|/,-]+$/, ''); // a joiner left dangling: "Song (Tape 4) + Lyrics" -> "Song (Tape 4)"
 
   let artist = '';
   let track = t;
@@ -120,6 +121,17 @@ function musicFromWatchHtml(html) {
   return song.track ? song : null;
 }
 
+// YouTube credits the recording its Content ID matched, which for a cover, remix, or verse over
+// someone else's beat is the original ("Meaku - Her Body" for an ILLSLICK track). Trust a credit
+// only when the video title mentions its song or artist.
+function creditMatchesTitle(credit, title) {
+  const t = titleKey(title);
+  return [credit.track, credit.artist].some((s) => {
+    const k = titleKey(s);
+    return k.length > 1 && t.includes(k);
+  });
+}
+
 // "Song (7\" Mix) [Thai ver.]" -> "Song"
 function bareTitle(s) {
   return s.replace(/\s*[(\[【][^)\]】]*[)\]】]/g, '').trim();
@@ -157,6 +169,7 @@ if (typeof module !== 'undefined') {
     musicFromWatchHtml,
     bareTitle,
     titleKey,
+    creditMatchesTitle,
     searchCandidates,
   };
 }

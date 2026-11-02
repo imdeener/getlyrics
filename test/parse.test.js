@@ -131,3 +131,17 @@ test('titleKey: same song despite case, punctuation, and versions; different son
   assert.equal(titleKey('ชื่อเพลง [Thai ver.]'), titleKey('ชื่อเพลง'));
   assert.notEqual(titleKey('Chan Ja Sorn Hai Loke Rong Pleng'), titleKey('PLENG'));
 });
+
+const { creditMatchesTitle } = require('../parse.js');
+
+test('parseTitle: no dangling joiner after removing "+ Lyrics"', () => {
+  assert.equal(parseTitle('Artist - Song (Tape 4) + Lyrics', 'x').track, 'Song (Tape 4)');
+  assert.equal(parseTitle('Artist - Song & Lyrics', 'x').track, 'Song');
+});
+
+test('creditMatchesTitle: trust YouTube credits only when the title mentions them', () => {
+  assert.equal(creditMatchesTitle({ track: 'Her Body', artist: 'Meaku' }, 'ILLSLICK - เซอะ (FIXTAPE 4) + Lyrics'), false);
+  assert.equal(creditMatchesTitle({ track: 'Never Gonna Give You Up (7" Mix)', artist: 'Rick Astley' }, 'Rick Astley - Never Gonna Give You Up (Official Video)'), true);
+  assert.equal(creditMatchesTitle({ track: 'ASAP', artist: 'NewJeans' }, "NewJeans (뉴진스) 'ASAP' Official MV"), true);
+  assert.equal(creditMatchesTitle({ track: 'Some Song', artist: 'Someone' }, 'Someone - Live at the Hall'), true); // artist alone is enough
+});
