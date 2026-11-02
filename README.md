@@ -1,4 +1,4 @@
-# getlyrics
+# getlyrics [![test](https://github.com/imdeener/getlyrics/actions/workflows/test.yml/badge.svg)](https://github.com/imdeener/getlyrics/actions/workflows/test.yml)
 
 Real-time synced lyrics beside the YouTube player, with karaoke-style word highlighting. A Chrome extension (Manifest V3) powered by [LRCLIB](https://lrclib.net). No account, no API key.
 
@@ -8,7 +8,8 @@ Real-time synced lyrics beside the YouTube player, with karaoke-style word highl
 - **Synced lyrics panel** at the top of the sidebar. The current line is highlighted and scrolls into view. Click any line to jump there.
 - **Word-by-word highlight** that fills each word as it's sung. Uses real word timings when the lyrics include them (enhanced LRC). Otherwise it estimates them. Splits words correctly for languages without spaces (Thai, Japanese, Chinese) via `Intl.Segmenter`.
 - **Fullscreen overlay** showing the current and next line over the video.
-- **Timing offset**: `−` / `+` shift lyrics by 0.5s. The offset is saved per video.
+- **Quick sync**: Alt+click (Option+click on Mac) a line the moment it starts and the timing snaps into place. `−` / `+` fine-tune it by 0.5s. The offset is saved per video.
+- **Mismatch warning**: if the lyrics' length differs from the video by more than 10s (MV intro, different version), a hint tells you how to fix it.
 - **Manual search**: if the auto-match is wrong or missing, press `⌕`, search, and pick a result. Your choice is remembered for that video.
 - **Themes**: color from the video thumbnail, dark, or light.
 - **Localized UI**: English and Thai. Follows the browser's language.
@@ -40,7 +41,7 @@ getlyrics doesn't collect anything. To find lyrics it sends the detected artist,
 
 ## Known limitations
 
-- An MV with an intro plays ahead of the audio version that the lyrics are timed to. Fix it with `−` / `+`.
+- An MV with an intro plays ahead of the audio version that the lyrics are timed to. Fix it with Alt+click (Option+click on Mac) on a line, or with `−` / `+`.
 - A mid-song dance break or skit can't be fixed with a single offset.
 - Coverage depends on LRCLIB. Lyrics there are community-contributed, so some songs are missing or slightly off.
 
@@ -49,7 +50,8 @@ getlyrics doesn't collect anything. To find lyrics it sends the detected artist,
 Issues and PRs are welcome.
 
 - **Add a language**: copy `_locales/en/messages.json` to `_locales/<code>/messages.json` and translate the `message` values. No code changes are needed.
-- **Title parsing**: if a video title is detected wrongly, add it as a case in `test/parse.test.js` and fix `parse.js`. Run the tests with:
+- **Title parsing**: if a video title is detected wrongly, add it as a case in `test/parse.test.js` and fix `parse.js`.
+- **Tests**: CI runs them on every push and PR. To run them locally:
 
   ```sh
   node --test

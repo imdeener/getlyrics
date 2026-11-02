@@ -17,6 +17,7 @@ let active = -1;
 let offset = 0; // seconds, user-adjustable for MVs with intros
 let userScrollUntil = 0;
 let panel, body, label, offsetLabel, searchBox, searchInput, themeBtn, wordBtn;
+let notice; // duration-mismatch hint above the lyrics
 let keepTop; // MutationObserver keeping the panel first in the sidebar
 let overlay, overlayCur, overlayNext; // fullscreen lyrics, lives inside #movie_player
 
@@ -81,6 +82,7 @@ function buildPanel() {
   panel.id = 'gl-panel';
   label = el('div', 'gl-label');
   offsetLabel = el('span', 'gl-offset');
+  offsetLabel.title = t('syncHint');
   themeBtn = button('◐', '', cycleTheme);
   wordBtn = button(t('wordButton'), t('wordTitle'), toggleWords);
   const head = el('div', 'gl-head');
@@ -108,7 +110,9 @@ function buildPanel() {
 
   body = el('div', 'gl-body');
   body.addEventListener('wheel', () => (userScrollUntil = Date.now() + 3000), { passive: true });
-  panel.append(head, searchBox, body);
+  notice = el('div', 'gl-notice');
+  notice.hidden = true;
+  panel.append(head, searchBox, notice, body);
   setOffset(0);
   applySettings();
 }
@@ -198,6 +202,7 @@ function updateOverlay(i) {
 }
 
 function setStatus(text) {
+  notice.hidden = true;
   lines = [];
   updateOverlay(-1);
   active = -1;
@@ -218,9 +223,16 @@ function render(hit) {
     const e = el('p', 'gl-line', l.text ? null : '♪');
     const words = l.text ? wordTimings(l, parsed[i + 1]?.time) : [];
     for (const w of words) e.append((w.el = el('span', 'gl-w', w.text)));
-    e.onclick = () => {
+    e.onclick = (ev) => {
       const v = video();
-      if (v) v.currentTime = Math.max(0, l.time - offset);
+      if (!v) return;
+      if (ev.altKey) {
+        // "This line starts now": derive the offset from the playhead instead of seeking.
+        setOffset(l.time - v.currentTime, true);
+        notice.hidden = true;
+      } else {
+        v.currentTime = Math.max(0, l.time - offset);
+      }
       userScrollUntil = 0;
     };
     return { time: l.time, text: l.text, el: e, words };
@@ -228,6 +240,11 @@ function render(hit) {
   active = -1;
   show(lines.map((l) => l.el), true);
   updateOverlay(-1);
+
+  // A big length mismatch (MV intro, different version) usually means the timing is off.
+  const diff = Math.round(Math.abs((meta?.duration ?? hit.duration) - hit.duration));
+  notice.textContent = t('durationMismatch', String(diff));
+  notice.hidden = diff <= 10 || !!settings.offsets[currentId];
 }
 
 function renderResults(results) {

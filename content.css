@@ -177,3 +177,14 @@
   background-clip: text;
   color: transparent;
 }
+
+.gl-notice {
+  margin: 10px 16px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(var(--gl-fg) / 0.08);
+  color: rgb(var(--gl-fg) / 0.8);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.gl-notice[hidden] { display: none; }

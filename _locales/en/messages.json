@@ -63,5 +63,16 @@
   },
   "loadFailed": {
     "message": "Could not load lyrics"
+  },
+  "syncHint": {
+    "message": "Tip: Alt+click (Option+click on Mac) a line the moment it starts to sync"
+  },
+  "durationMismatch": {
+    "message": "These lyrics differ from the video by $SECONDS$s, so timing may be off. Alt+click (Option+click on Mac) a line as it starts to sync, or use ⌕ to pick another version.",
+    "placeholders": {
+      "seconds": {
+        "content": "$1"
+      }
+    }
   }
 }
