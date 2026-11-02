@@ -2,6 +2,8 @@
 
 Real-time synced lyrics beside the YouTube player, with karaoke-style word highlighting. A Chrome extension (Manifest V3) powered by [LRCLIB](https://lrclib.net). No account, no API key.
 
+![getlyrics showing synced lyrics beside a video](store/screenshots/1-synced-panel.png)
+
 ## Features
 
 - **Auto-detects the song**: uses the song credits in YouTube's "Music" section when there are any. Otherwise it reads the video title. Strips clutter like `(Official MV)`, `[HD]`, `| Label`, `feat. ...`. Handles `Artist - Song`, `Song - Artist`, and K-pop style `ARTIST 'Song' M/V`. If nothing matches, it retries without version tags like `(Remix)` or `[Thai ver.]`.
@@ -59,6 +61,7 @@ Issues and PRs are welcome.
   ```
 
   This needs Node 20 or newer.
+- **Screenshots**: `store/screenshots.js` renders the store images from mock pages that use the real `content.css`, with a made-up song. To regenerate them, run `CHROME=/path/to/chrome node store/screenshots.js`.
 
 ## Credits
 
