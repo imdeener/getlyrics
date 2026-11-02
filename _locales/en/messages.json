@@ -79,7 +79,7 @@
     "message": "The synced timing for this song on LRCLIB is broken, so the lyrics are shown without sync. Use ⌕ to look for another version."
   },
   "busy": {
-    "message": "Couldn't reach LRCLIB right now. Refresh the page in a moment to try again."
+    "message": "Couldn't reach LRCLIB right now."
   },
   "reloadPage": {
     "message": "getlyrics was updated. Refresh this page to keep using it."
@@ -89,5 +89,8 @@
   },
   "searchTrack": {
     "message": "Song title, then Enter"
+  },
+  "tryAgain": {
+    "message": "Try again"
   }
 }

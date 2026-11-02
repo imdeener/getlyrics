@@ -18,7 +18,9 @@ async function api(path, params) {
   if (cache.has(url)) return cache.get(url);
   const k = kind(path, params);
   if (busyUntil[k] > Date.now()) throw new Error('busy');
-  for (const wait of [800, 0]) {
+  // Artist+title search is shed only now and then, so it earns an extra try; q and id lookups are
+  // shed wholesale, so a second failure is enough to bench them.
+  for (const wait of k === '/search' ? [700, 1500, 0] : [800, 0]) {
     const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } }).catch(
       () => null, // network error: retry like an overload
     );

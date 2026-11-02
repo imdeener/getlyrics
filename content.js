@@ -39,9 +39,14 @@ async function send(msg) {
 }
 
 // Map a failed response to the message the user can act on, and keep the raw error in the console.
-function failure(res, fallback) {
+// retry: offered as a button, except after an update, where only a page refresh helps.
+function failure(res, fallback, retry) {
   if (!['busy', 'reload'].includes(res.error)) console.warn('[getlyrics]', res.error);
-  return setStatus(t({ busy: 'busy', reload: 'reloadPage' }[res.error] || fallback));
+  if (res.error === 'reload') return setStatus(t('reloadPage'));
+  setStatus(t(res.error === 'busy' ? 'busy' : fallback));
+  const again = el('button', 'gl-btn gl-retry', t('tryAgain'));
+  again.onclick = retry;
+  body.firstChild.append(again);
 }
 
 function el(tag, cls, text) {
@@ -327,7 +332,7 @@ async function manualSearch(artist, track) {
   setStatus(t('searching'));
   const res = await send({ type: 'search', artist, track });
   if (my !== token) return;
-  if (res?.error) return failure(res, 'searchFailed');
+  if (res?.error) return failure(res, 'searchFailed', () => manualSearch(artist, track));
   renderResults(res.results);
 }
 
@@ -401,7 +406,14 @@ async function onNavigate() {
 
   const res = await send({ type: 'lyrics', ...meta, pick: pickFor(id) });
   if (my !== token) return;
-  if (res?.error) return failure(res, 'loadFailed');
+  if (res?.error) {
+    return failure(res, 'loadFailed', () => {
+      // Force a fresh lookup of this video; clearing lastTitle skips the wait for a new title.
+      currentId = null;
+      lastTitle = '';
+      onNavigate();
+    });
+  }
   render(res.hit);
 }
 
