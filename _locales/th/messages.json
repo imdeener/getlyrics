@@ -84,13 +84,10 @@
   "reloadPage": {
     "message": "getlyrics เพิ่งอัปเดต รีเฟรชหน้านี้เพื่อใช้งานต่อ"
   },
-  "searchArtist": {
-    "message": "ศิลปิน"
-  },
-  "searchTrack": {
-    "message": "ชื่อเพลง แล้วกด Enter"
-  },
   "tryAgain": {
     "message": "ลองอีกครั้ง"
+  },
+  "searchPlaceholder": {
+    "message": "ศิลปิน - ชื่อเพลง แล้วกด Enter"
   }
 }

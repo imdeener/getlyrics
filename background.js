@@ -161,14 +161,30 @@ async function thumbColor(id) {
 
 const handlers = {
   lyrics: async (msg) => ({ hit: await findLyrics(msg) }),
-  search: async ({ artist, track }) => {
-    const all = (r) => (rank(r).length ? rank(r).slice(0, 10) : null);
-    const queries = unique([
-      { track_name: track, artist_name: artist },
-      { track_name: track },
-      { q: [artist, track].filter(Boolean).join(' ') },
-    ]).map((q) => ['/search', q, all]);
-    return { results: (await firstHit(queries)) || [] };
+  // Manual search takes one free-form box. "A - B" is tried as artist+title both ways (the lookup
+  // that survives load shedding) and the results merged; free text is the fallback.
+  search: async ({ text }) => {
+    const parts = text.split(/\s+[-–—|]\s+/).map((s) => s.trim()).filter(Boolean);
+    const [a, b] = parts;
+    const phases = [
+      b ? [{ track_name: b, artist_name: a }, { track_name: a, artist_name: b }] : [{ track_name: text }],
+      [{ q: parts.join(' ') }],
+    ];
+    let busy = false;
+    for (const phase of phases) {
+      const found = new Map(); // id -> result, merged across both orders
+      for (const q of unique(phase)) {
+        try {
+          for (const r of rank(await api('/search', q))) found.set(r.id, r);
+        } catch (err) {
+          if (err.message !== 'busy') throw err;
+          if (!q.q) busy = true;
+        }
+      }
+      if (found.size) return { results: rank([...found.values()]).slice(0, 10) };
+    }
+    if (busy) throw new Error('busy');
+    return { results: [] };
   },
   color: async ({ id }) => ({ color: await thumbColor(id) }),
 };

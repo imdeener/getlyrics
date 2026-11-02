@@ -84,13 +84,10 @@
   "reloadPage": {
     "message": "getlyrics was updated. Refresh this page to keep using it."
   },
-  "searchArtist": {
-    "message": "Artist"
-  },
-  "searchTrack": {
-    "message": "Song title, then Enter"
-  },
   "tryAgain": {
     "message": "Try again"
+  },
+  "searchPlaceholder": {
+    "message": "Artist - Song, then Enter"
   }
 }

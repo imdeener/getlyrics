@@ -16,7 +16,7 @@ let lines = []; // [{time, text, el, words: [{start, end, el, oel}]}]
 let active = -1;
 let offset = 0; // seconds, user-adjustable for MVs with intros
 let userScrollUntil = 0;
-let panel, body, label, offsetLabel, searchBox, artistInput, trackInput, themeBtn, wordBtn;
+let panel, body, label, offsetLabel, searchBox, searchInput, themeBtn, wordBtn;
 let notice; // hint above the lyrics: duration mismatch or sync-mode prompt
 let syncBtn;
 let syncMode = false;
@@ -133,24 +133,17 @@ function buildPanel() {
     themeBtn,
   );
 
-  // Separate artist/title fields map to LRCLIB's structured search, which keeps working when
-  // free-text search is shed under load.
-  const field = (placeholder) => {
-    const input = el('input', 'gl-input');
-    input.placeholder = placeholder;
-    // Keep YouTube's single-key shortcuts (k, f, j...) from firing while typing.
-    for (const type of ['keydown', 'keyup', 'keypress']) input.addEventListener(type, (e) => e.stopPropagation());
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && trackInput.value.trim()) manualSearch(artistInput.value.trim(), trackInput.value.trim());
-      if (e.key === 'Escape') toggleSearch(false);
-    });
-    return input;
-  };
-  artistInput = field(t('searchArtist'));
-  trackInput = field(t('searchTrack'));
+  searchInput = el('input', 'gl-input');
+  searchInput.placeholder = t('searchPlaceholder');
+  // Keep YouTube's single-key shortcuts (k, f, j...) from firing while typing.
+  for (const type of ['keydown', 'keyup', 'keypress']) searchInput.addEventListener(type, (e) => e.stopPropagation());
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && searchInput.value.trim()) manualSearch(searchInput.value.trim());
+    if (e.key === 'Escape') toggleSearch(false);
+  });
   searchBox = el('div', 'gl-search');
   searchBox.hidden = true;
-  searchBox.append(artistInput, trackInput);
+  searchBox.append(searchInput);
 
   body = el('div', 'gl-body');
   body.addEventListener('wheel', () => (userScrollUntil = Date.now() + 3000), { passive: true });
@@ -193,10 +186,10 @@ function setOffset(v, persist) {
 function toggleSearch(force) {
   searchBox.hidden = !(force ?? searchBox.hidden);
   if (searchBox.hidden) return;
-  artistInput.value = meta?.artist || '';
-  trackInput.value = meta?.track || '';
-  trackInput.focus();
-  trackInput.select();
+  // "A - B" in whatever order we guessed; the search tries both orders.
+  searchInput.value = [meta?.artist, meta?.track].filter(Boolean).join(' - ');
+  searchInput.focus();
+  searchInput.select();
 }
 
 async function mount() {
@@ -327,12 +320,12 @@ function renderResults(results) {
   );
 }
 
-async function manualSearch(artist, track) {
+async function manualSearch(text) {
   const my = token;
   setStatus(t('searching'));
-  const res = await send({ type: 'search', artist, track });
+  const res = await send({ type: 'search', text });
   if (my !== token) return;
-  if (res?.error) return failure(res, 'searchFailed', () => manualSearch(artist, track));
+  if (res?.error) return failure(res, 'searchFailed', () => manualSearch(text));
   renderResults(res.results);
 }
 

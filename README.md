@@ -12,7 +12,7 @@ Real-time synced lyrics beside the YouTube player, with karaoke-style word highl
 - **Fullscreen overlay** showing the current and next line over the video.
 - **Quick sync**: out of sync? Press `⏱`, then click the line being sung right now, and the timing snaps into place. Shortcut: Alt+click (Option+click on Mac) a line. `−` / `+` fine-tune it by 0.5s. The offset is saved per video.
 - **Mismatch warning**: if the lyrics' length differs from the video by more than 10s (MV intro, different version), a hint tells you how to fix it.
-- **Manual search**: if the auto-match is wrong or missing, press `⌕`, enter the artist and title, and pick a result. Your choice is remembered for that video.
+- **Manual search**: if the auto-match is wrong or missing, press `⌕`, type `Artist - Song` (either order works), and pick a result. Your choice is remembered for that video.
 - **Themes**: color from the video thumbnail, dark, or light.
 - **Localized UI**: English and Thai. Follows the browser's language.
 
