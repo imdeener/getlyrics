@@ -10,7 +10,7 @@ async function api(path, params) {
 // Synced first, then closest duration to the video.
 function rank(results, duration) {
   const diff = (r) => (duration ? Math.abs(r.duration - duration) : 0);
-  return (results || [])
+  return (Array.isArray(results) ? results : []) // LRCLIB can answer with an error object
     .filter((r) => r.syncedLyrics || r.plainLyrics || r.instrumental)
     .sort((a, b) => !!b.syncedLyrics - !!a.syncedLyrics || diff(a) - diff(b));
 }
