@@ -6,7 +6,19 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const THEMES = ['auto', 'dark', 'light'];
 // UI strings live in _locales/<lang>/messages.json; Chrome picks the browser's language.
-const t = (key, ...subs) => chrome.i18n.getMessage(key, subs) || key;
+const t = (key, ...subs) => {
+  try {
+    return chrome.i18n.getMessage(key, subs) || key;
+  } catch {
+    return key; // orphaned script, see retire()
+  }
+};
+
+// When the extension is reloaded or updated, this copy of the script stays in open tabs but every
+// chrome.* call throws "Extension context invalidated". So detect it, step aside, and ask for a refresh.
+// The message is read now, while i18n still works.
+const alive = () => !!chrome.runtime?.id;
+const RELOAD_MSG = t('reloadPage');
 
 let currentId = null;
 let token = 0;
@@ -28,7 +40,7 @@ let overlay, overlayCur, overlayNext; // fullscreen lyrics, lives inside #movie_
 // picks: videoId -> LRCLIB id, offsets: videoId -> seconds
 const settings = { theme: 'auto', words: true, picks: {}, offsets: {} };
 const ready = chrome.storage.local.get(Object.keys(settings)).then((s) => Object.assign(settings, s));
-const save = (key) => chrome.storage.local.set({ [key]: settings[key] });
+const save = (key) => alive() && chrome.storage.local.set({ [key]: settings[key] });
 
 async function send(msg) {
   try {
@@ -44,7 +56,7 @@ async function send(msg) {
 // retry: offered as a button, except after an update, where only a page refresh helps.
 function failure(res, fallback, retry) {
   if (!['busy', 'reload'].includes(res.error)) console.warn('[getlyrics]', res.error);
-  if (res.error === 'reload') return setStatus(t('reloadPage'));
+  if (res.error === 'reload') return retire();
   setStatus(t(res.error === 'busy' ? 'busy' : fallback));
   const again = el('button', 'gl-btn gl-retry', t('tryAgain'));
   again.onclick = retry;
@@ -354,7 +366,17 @@ function setActive(i) {
   }
 }
 
+function retire() {
+  document.removeEventListener('yt-navigate-finish', onNavigate);
+  keepTop?.disconnect();
+  overlay?.remove();
+  lines = [];
+  // Drop the buttons too: their handlers would only throw now.
+  if (panel?.isConnected) panel.replaceChildren(el('div', 'gl-status gl-retired', RELOAD_MSG));
+}
+
 function tick() {
+  if (!alive()) return retire(); // and stop the frame loop
   const v = video();
   if (lines.length && v && !adShowing()) {
     const now = v.currentTime + offset;
@@ -381,6 +403,7 @@ function pickFor(id) {
 }
 
 async function onNavigate() {
+  if (!alive()) return retire();
   const id = location.pathname === '/watch' && new URLSearchParams(location.search).get('v');
   if (!id) {
     token++; // cancel any lookup still in flight for the previous video

@@ -36,14 +36,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const errors = [];
   let sw = ctx.serviceWorkers()[0] || (await ctx.waitForEvent('serviceworker', { timeout: 15000 }));
   check('service worker running', !!sw, sw?.url());
-  sw.on?.('console', (m) => m.type() === 'error' && errors.push(`[sw] ${m.text()}`));
+  // Service worker: record console.error/warn and uncaught errors in a global we read at the end.
+  const hookSW = (w) =>
+    w.evaluate(() => {
+      self.__glErrors = [];
+      const push = (m) => self.__glErrors.push(String(m));
+      for (const level of ['error', 'warn']) {
+        const orig = console[level].bind(console);
+        console[level] = (...a) => (push(`console.${level} ${a.join(' ')}`), orig(...a));
+      }
+      self.addEventListener('error', (e) => push(`uncaught ${e.message}`));
+      self.addEventListener('unhandledrejection', (e) => push(`unhandledrejection ${e.reason?.stack || e.reason}`));
+    });
+  const readSW = async (w) => (await w.evaluate(() => self.__glErrors || []).catch(() => [])).forEach((e) => errors.push(`[sw] ${e}`));
+  await hookSW(sw);
 
+  // Content script: it runs in an isolated world that Playwright's console/pageerror events don't
+  // cover, so listen through CDP and keep only the extension's contexts.
   const page = ctx.pages()[0] || (await ctx.newPage());
-  page.on('console', (m) => {
-    const txt = m.text();
-    if (/getlyrics|chrome-extension:/i.test(txt) || (m.type() === 'error' && /gl-|lyrics/i.test(txt))) errors.push(`[page ${m.type()}] ${txt}`);
+  const cdp = await ctx.newCDPSession(page);
+  const extContexts = new Set();
+  cdp.on('Runtime.executionContextCreated', ({ context }) => {
+    if (context.origin?.startsWith('chrome-extension://') || context.auxData?.type === 'isolated') extContexts.add(context.id);
   });
-  page.on('pageerror', (e) => /gl-|lyrics|chrome-extension/i.test(e.stack || '') && errors.push(`[pageerror] ${e.message}`));
+  cdp.on('Runtime.consoleAPICalled', (e) => {
+    if (extContexts.has(e.executionContextId) && ['error', 'warning', 'assert'].includes(e.type))
+      errors.push(`[content ${e.type}] ${e.args.map((a) => a.value ?? a.description).join(' ')}`);
+  });
+  cdp.on('Runtime.exceptionThrown', ({ exceptionDetails: d }) => {
+    if (extContexts.has(d.executionContextId) || /chrome-extension:/.test(`${d.url} ${d.exception?.description}`))
+      errors.push(`[content exception] ${(d.exception?.description || d.text).split('\n').slice(0, 2).join(' ')}`);
+  });
+  await cdp.send('Runtime.enable');
 
   const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
   const panelState = () =>
@@ -241,7 +265,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(3000);
   check('panel removed off the watch page', !(await page.$('#gl-panel')));
 
-  check('no extension errors in page or service worker consoles', errors.length === 0, errors.slice(0, 5).join(' | '));
+  // 12. The extension is reloaded (e.g. updated) while a YouTube tab stays open: the orphaned script
+  // must step aside quietly instead of throwing "Extension context invalidated" on every click.
+  await page.goto('https://www.youtube.com/watch?v=dQw4w9WgXcQ', { waitUntil: 'domcontentloaded' });
+  await waitPanel((x) => x.lines > 0 || /found|reach|failed/i.test(x.status));
+  await readSW(sw);
+  await sw.evaluate(() => chrome.runtime.reload()).catch(() => {});
+  await sleep(3000);
+  const orphan = await page.evaluate(() => ({
+    text: document.querySelector('#gl-panel')?.textContent,
+    buttons: document.querySelectorAll('#gl-panel .gl-btn').length,
+    overlay: !!document.querySelector('#gl-overlay'),
+  }));
+  check('after an extension reload, the open tab asks for a refresh', /refresh/i.test(orphan.text || '') && !orphan.buttons && !orphan.overlay, JSON.stringify(orphan));
+  await page.evaluate(() => document.querySelector('a#thumbnail[href*="/watch"]')?.click());
+  await sleep(4000);
+  sw = ctx.serviceWorkers().find((w) => w.url().endsWith('/background.js'));
+  if (sw) await readSW(sw);
+
+  check('no extension errors (content script via CDP, service worker)', errors.length === 0, errors.slice(0, 5).join(' | '));
   const failed = results.filter((r) => !r.ok).length;
   console.log(`\n${results.length - failed}/${results.length} passed`);
   await ctx.close();

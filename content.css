@@ -119,6 +119,7 @@
 }
 .gl-status { text-align: center; padding-top: 170px; }
 .gl-retry { display: block; margin: 12px auto 0; padding: 0 14px; }
+.gl-status.gl-retired { padding: 16px; }
 
 .gl-result {
   display: block;
