@@ -43,6 +43,7 @@ getlyrics doesn't collect anything. It reads the song credits by loading the cur
 
 - An MV with an intro plays ahead of the audio version that the lyrics are timed to. Fix it with `⏱` (quick sync) or `−` / `+`.
 - A mid-song dance break or skit can't be fixed with a single offset.
+- Some LRCLIB entries have broken timing, for example every line squeezed into the last minute. getlyrics detects this and shows those lyrics unsynced instead of stuck.
 - Coverage depends on LRCLIB. Lyrics there are community-contributed, so some songs are missing or slightly off.
 
 ## Contributing

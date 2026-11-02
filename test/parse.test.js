@@ -100,3 +100,19 @@ test('searchCandidates: music credit first, then title guess, bare variants, no 
   ]);
   assert.deepEqual(searchCandidates(null, parsed), [{ artist: 'Some Artist', track: 'Some Song', swap: true }]);
 });
+
+const { syncLooksBroken } = require('../parse.js');
+const lrcAt = (times) => parseLrc(times.map((s) => `[${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(2).padStart(5, '0')}]x`).join('\n'));
+
+test('syncLooksBroken: all lines squeezed after the middle of the song', () => {
+  // Real-world shape: 76 lines between 139s and 198s in a 198s track.
+  const times = Array.from({ length: 76 }, (_, i) => 139 + (i * 59) / 75);
+  assert.equal(syncLooksBroken(lrcAt(times), 198), true);
+  assert.equal(syncLooksBroken(lrcAt(times), 1), true); // bogus duration on the entry
+});
+
+test('syncLooksBroken: normal and fast songs pass', () => {
+  assert.equal(syncLooksBroken(lrcAt(Array.from({ length: 60 }, (_, i) => 12 + i * 3)), 200), false);
+  assert.equal(syncLooksBroken(lrcAt(Array.from({ length: 90 }, (_, i) => 8 + i * 1.6)), 160), false); // fast rap
+  assert.equal(syncLooksBroken(lrcAt([45, 50]), 200), false); // long intro is fine
+});

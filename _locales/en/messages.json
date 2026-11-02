@@ -77,5 +77,8 @@
   },
   "syncPrompt": {
     "message": "Click the line being sung right now. Press ⏱ again to cancel."
+  },
+  "brokenSync": {
+    "message": "The synced timing for this song on LRCLIB is broken, so the lyrics are shown without sync. Use ⌕ to look for another version."
   }
 }

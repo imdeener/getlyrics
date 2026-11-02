@@ -86,6 +86,17 @@ function wordTimings(line, next) {
   });
 }
 
+// Some LRCLIB entries have nonsense timing, e.g. every line squeezed into the last minute.
+// Flag: first line past the middle of the song, or lines averaging under 0.8s apart.
+function syncLooksBroken(lines, duration = 0) {
+  const timed = lines.filter((l) => l.text);
+  if (timed.length < 2) return false;
+  const first = timed[0].time;
+  const last = timed.at(-1).time;
+  const length = Math.max(duration, last); // some entries carry a bogus duration
+  return first > length * 0.5 || (timed.length >= 20 && (last - first) / (timed.length - 1) < 0.8);
+}
+
 // YouTube's "Music" description section (song credits) from a watch page's ytInitialData.
 // Found by its MUSIC icon, so it works in every UI language. Skips compilations (more than one song).
 function musicFromWatchHtml(html) {
@@ -125,5 +136,14 @@ function searchCandidates(...sources) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parseTitle, parseLrc, splitWords, wordTimings, musicFromWatchHtml, bareTitle, searchCandidates };
+  module.exports = {
+    parseTitle,
+    parseLrc,
+    splitWords,
+    wordTimings,
+    syncLooksBroken,
+    musicFromWatchHtml,
+    bareTitle,
+    searchCandidates,
+  };
 }

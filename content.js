@@ -249,7 +249,10 @@ function render(hit) {
   if (hit.instrumental) return setStatus(`♪ ${t('instrumental')}`);
   if (!hit.syncedLyrics) {
     setStatus('');
-    return show([el('div', 'gl-plain', hit.plainLyrics)], false);
+    show([el('div', 'gl-plain', hit.plainLyrics)], false);
+    notice.textContent = t('brokenSync');
+    notice.hidden = !hit.brokenSync;
+    return;
   }
 
   const parsed = parseLrc(hit.syncedLyrics);

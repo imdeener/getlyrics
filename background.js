@@ -7,10 +7,23 @@ async function api(path, params) {
   return res.ok ? res.json() : null;
 }
 
+/* global parseLrc, syncLooksBroken */
+importScripts('parse.js');
+
+// Broken synced timing is worse than none: demote it to plain lyrics and say why.
+function demoteBrokenSync(r) {
+  if (!r.syncedLyrics) return r;
+  const lines = parseLrc(r.syncedLyrics);
+  if (!syncLooksBroken(lines, r.duration)) return r;
+  const plain = r.plainLyrics || lines.map((l) => l.text).join('\n');
+  return { ...r, syncedLyrics: null, plainLyrics: plain, brokenSync: true };
+}
+
 // Synced first, then closest duration to the video.
 function rank(results, duration) {
   const diff = (r) => (duration ? Math.abs(r.duration - duration) : 0);
   return (Array.isArray(results) ? results : []) // LRCLIB can answer with an error object
+    .map(demoteBrokenSync)
     .filter((r) => r.syncedLyrics || r.plainLyrics || r.instrumental)
     .sort((a, b) => !!b.syncedLyrics - !!a.syncedLyrics || diff(a) - diff(b));
 }
@@ -31,7 +44,7 @@ function unique(queries) {
 async function findLyrics({ candidates = [], raw, duration, pickId }) {
   if (pickId) {
     const hit = await api(`/get/${pickId}`);
-    if (hit) return hit;
+    if (hit?.id) return demoteBrokenSync(hit);
   }
   const strict = unique(
     candidates
