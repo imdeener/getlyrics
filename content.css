@@ -62,7 +62,7 @@
   color: rgb(var(--gl-fg) / 0.6);
 }
 
-.gl-search { padding: 10px 16px 0; }
+.gl-search { display: grid; grid-template-columns: 2fr 3fr; gap: 6px; padding: 10px 16px 0; }
 .gl-search[hidden] { display: none; }
 .gl-input {
   width: 100%;

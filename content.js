@@ -16,7 +16,7 @@ let lines = []; // [{time, text, el, words: [{start, end, el, oel}]}]
 let active = -1;
 let offset = 0; // seconds, user-adjustable for MVs with intros
 let userScrollUntil = 0;
-let panel, body, label, offsetLabel, searchBox, searchInput, themeBtn, wordBtn;
+let panel, body, label, offsetLabel, searchBox, artistInput, trackInput, themeBtn, wordBtn;
 let notice; // hint above the lyrics: duration mismatch or sync-mode prompt
 let syncBtn;
 let syncMode = false;
@@ -128,17 +128,24 @@ function buildPanel() {
     themeBtn,
   );
 
-  searchInput = el('input', 'gl-input');
-  searchInput.placeholder = t('searchPlaceholder');
-  // Keep YouTube's single-key shortcuts (k, f, j...) from firing while typing.
-  for (const type of ['keydown', 'keyup', 'keypress']) searchInput.addEventListener(type, (e) => e.stopPropagation());
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && searchInput.value.trim()) manualSearch(searchInput.value.trim());
-    if (e.key === 'Escape') toggleSearch(false);
-  });
+  // Separate artist/title fields map to LRCLIB's structured search, which keeps working when
+  // free-text search is shed under load.
+  const field = (placeholder) => {
+    const input = el('input', 'gl-input');
+    input.placeholder = placeholder;
+    // Keep YouTube's single-key shortcuts (k, f, j...) from firing while typing.
+    for (const type of ['keydown', 'keyup', 'keypress']) input.addEventListener(type, (e) => e.stopPropagation());
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && trackInput.value.trim()) manualSearch(artistInput.value.trim(), trackInput.value.trim());
+      if (e.key === 'Escape') toggleSearch(false);
+    });
+    return input;
+  };
+  artistInput = field(t('searchArtist'));
+  trackInput = field(t('searchTrack'));
   searchBox = el('div', 'gl-search');
   searchBox.hidden = true;
-  searchBox.append(searchInput);
+  searchBox.append(artistInput, trackInput);
 
   body = el('div', 'gl-body');
   body.addEventListener('wheel', () => (userScrollUntil = Date.now() + 3000), { passive: true });
@@ -181,9 +188,10 @@ function setOffset(v, persist) {
 function toggleSearch(force) {
   searchBox.hidden = !(force ?? searchBox.hidden);
   if (searchBox.hidden) return;
-  searchInput.value = metaLabel().replace(' — ', ' ');
-  searchInput.focus();
-  searchInput.select();
+  artistInput.value = meta?.artist || '';
+  trackInput.value = meta?.track || '';
+  trackInput.focus();
+  trackInput.select();
 }
 
 async function mount() {
@@ -302,7 +310,8 @@ function renderResults(results) {
       const sub = [r.artistName, fmt(r.duration), t(r.syncedLyrics ? 'synced' : r.instrumental ? 'instrumental' : 'unsynced')];
       item.append(el('div', 'gl-result-title', r.trackName), el('div', 'gl-result-sub', sub.join(' · ')));
       item.onclick = () => {
-        settings.picks[currentId] = r.id; // remembered for this video
+        // Remembered for this video; the name lets us find it again if lookups by id are busy.
+        settings.picks[currentId] = { id: r.id, artist: r.artistName, track: r.trackName };
         save('picks');
         toggleSearch(false);
         render(r);
@@ -313,10 +322,10 @@ function renderResults(results) {
   );
 }
 
-async function manualSearch(q) {
+async function manualSearch(artist, track) {
   const my = token;
   setStatus(t('searching'));
-  const res = await send({ type: 'search', q });
+  const res = await send({ type: 'search', artist, track });
   if (my !== token) return;
   if (res?.error) return failure(res, 'searchFailed');
   renderResults(res.results);
@@ -356,6 +365,12 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
+// Older versions stored just the LRCLIB id.
+function pickFor(id) {
+  const p = settings.picks[id];
+  return typeof p === 'number' ? { id: p } : p;
+}
+
 async function onNavigate() {
   const id = location.pathname === '/watch' && new URLSearchParams(location.search).get('v');
   if (!id) {
@@ -384,7 +399,7 @@ async function onNavigate() {
   if (my !== token) return;
   label.textContent = metaLabel();
 
-  const res = await send({ type: 'lyrics', ...meta, pickId: settings.picks[id] });
+  const res = await send({ type: 'lyrics', ...meta, pick: pickFor(id) });
   if (my !== token) return;
   if (res?.error) return failure(res, 'loadFailed');
   render(res.hit);

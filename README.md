@@ -12,7 +12,7 @@ Real-time synced lyrics beside the YouTube player, with karaoke-style word highl
 - **Fullscreen overlay** showing the current and next line over the video.
 - **Quick sync**: out of sync? Press `⏱`, then click the line being sung right now, and the timing snaps into place. Shortcut: Alt+click (Option+click on Mac) a line. `−` / `+` fine-tune it by 0.5s. The offset is saved per video.
 - **Mismatch warning**: if the lyrics' length differs from the video by more than 10s (MV intro, different version), a hint tells you how to fix it.
-- **Manual search**: if the auto-match is wrong or missing, press `⌕`, search, and pick a result. Your choice is remembered for that video.
+- **Manual search**: if the auto-match is wrong or missing, press `⌕`, enter the artist and title, and pick a result. Your choice is remembered for that video.
 - **Themes**: color from the video thumbnail, dark, or light.
 - **Localized UI**: English and Thai. Follows the browser's language.
 
@@ -46,6 +46,7 @@ getlyrics doesn't collect anything. It reads the song credits by loading the cur
 - An MV with an intro plays ahead of the audio version that the lyrics are timed to. Fix it with `⏱` (quick sync) or `−` / `+`.
 - A mid-song dance break or skit can't be fixed with a single offset.
 - Some LRCLIB entries have broken timing, for example every line squeezed into the last minute. getlyrics detects this and shows those lyrics unsynced instead of stuck.
+- When LRCLIB is overloaded it turns away its heavier requests. getlyrics falls back to the lighter artist + title lookups that keep working, and only reports "couldn't reach LRCLIB" when nothing got through.
 - Coverage depends on LRCLIB. Lyrics there are community-contributed, so some songs are missing or slightly off.
 
 ## Contributing

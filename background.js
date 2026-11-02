@@ -3,13 +3,22 @@ const BASE = 'https://lrclib.net/api';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const cache = new Map(); // url -> response, so revisiting a video doesn't hit LRCLIB again
+const busyUntil = {}; // request kind -> timestamp; skip kinds LRCLIB is currently shedding
 
-// LRCLIB answers 503/429 when it's overloaded (and the network can drop): back off and retry, then fail as 'busy'
-// so the UI can say "try again" instead of a false "no lyrics found".
+// Under load LRCLIB sheds the expensive requests (free-text `q` search, lookup by id) with 503/429
+// while structured artist+title requests keep working. So: one quick retry, then mark that kind
+// busy for a minute and let callers fall through to the next query instead of failing outright.
+function kind(path, params) {
+  if (path.startsWith('/get/')) return 'id';
+  return params?.q ? 'q' : path;
+}
+
 async function api(path, params) {
   const url = BASE + path + (params ? `?${new URLSearchParams(params)}` : '');
   if (cache.has(url)) return cache.get(url);
-  for (const wait of [1000, 3000, 0]) {
+  const k = kind(path, params);
+  if (busyUntil[k] > Date.now()) throw new Error('busy');
+  for (const wait of [800, 0]) {
     const res = await fetch(url, { headers: { 'Lrclib-Client': `getlyrics/${chrome.runtime.getManifest().version}` } }).catch(
       () => null, // network error: retry like an overload
     );
@@ -22,7 +31,27 @@ async function api(path, params) {
     if (cache.size > 300) cache.delete(cache.keys().next().value);
     return body;
   }
+  // Only the kinds that are shed wholesale get benched; a structured search can 503 just for one
+  // unknown song, and benching it would block lookups for the next videos too.
+  if (k !== '/search') busyUntil[k] = Date.now() + 60_000;
   throw new Error('busy');
+}
+
+// Runs [path, params, pick] queries in order and returns the first hit. A busy query is skipped,
+// not fatal; only if nothing was found and something was busy does the lookup report 'busy'.
+async function firstHit(queries) {
+  let busy = false;
+  for (const [path, params, pick] of queries) {
+    try {
+      const hit = pick(await api(path, params));
+      if (hit) return hit;
+    } catch (e) {
+      if (e.message !== 'busy') throw e;
+      busy = true;
+    }
+  }
+  if (busy) throw new Error('busy');
+  return null;
 }
 
 /* global parseLrc, syncLooksBroken */
@@ -59,11 +88,17 @@ function unique(queries) {
 
 // candidates: [{artist, track, swap}] best guess first (see searchCandidates in parse.js).
 // Queries run one at a time and stop at the first hit, to go easy on LRCLIB.
-async function findLyrics({ candidates = [], raw, duration, pickId }) {
-  if (pickId) {
-    const hit = await api(`/get/${pickId}`);
-    if (hit?.id) return demoteBrokenSync(hit);
+async function findLyrics({ candidates = [], raw, duration, pick }) {
+  // A song the user picked by hand: by id, or (if lookups by id are being shed) by its saved name.
+  if (pick) {
+    const same = (r) => (Array.isArray(r) ? r.find((x) => x.id === pick.id) : r?.id && r);
+    const byName = pick.track ? [['/search', { track_name: pick.track, artist_name: pick.artist }, same]] : [];
+    const hit = await firstHit([[`/get/${pick.id}`, null, same], ...byName]).catch(() => null);
+    if (hit) return demoteBrokenSync(hit);
   }
+  const best = (r) => rank(r, duration)[0];
+  // Title-only queries can hit a different song with the same name; require a close duration.
+  const close = (r) => rank(r, duration).find((x) => !duration || Math.abs(x.duration - duration) <= 30);
   const strict = unique(
     candidates
       .filter((c) => c.artist)
@@ -74,18 +109,8 @@ async function findLyrics({ candidates = [], raw, duration, pickId }) {
         { q: `${c.artist} ${c.track}` },
       ]),
   );
-  // Title-only queries can hit a different song with the same name; require a close duration.
-  const loose = unique([...candidates.map((c) => ({ q: c.track })), { q: raw }]);
-
-  for (const q of strict) {
-    const [hit] = rank(await api('/search', q), duration);
-    if (hit) return hit;
-  }
-  for (const q of loose) {
-    const hit = rank(await api('/search', q), duration).find((r) => !duration || Math.abs(r.duration - duration) <= 30);
-    if (hit) return hit;
-  }
-  return null;
+  const loose = unique([...candidates.map((c) => ({ track_name: c.track })), ...candidates.map((c) => ({ q: c.track })), { q: raw }]);
+  return firstHit([...strict.map((q) => ['/search', q, best]), ...loose.map((q) => ['/search', q, close])]);
 }
 
 function hsl(r, g, b) {
@@ -121,7 +146,15 @@ async function thumbColor(id) {
 
 const handlers = {
   lyrics: async (msg) => ({ hit: await findLyrics(msg) }),
-  search: async ({ q }) => ({ results: rank(await api('/search', { q })).slice(0, 10) }),
+  search: async ({ artist, track }) => {
+    const all = (r) => (rank(r).length ? rank(r).slice(0, 10) : null);
+    const queries = unique([
+      { track_name: track, artist_name: artist },
+      { track_name: track },
+      { q: [artist, track].filter(Boolean).join(' ') },
+    ]).map((q) => ['/search', q, all]);
+    return { results: (await firstHit(queries)) || [] };
+  },
   color: async ({ id }) => ({ color: await thumbColor(id) }),
 };
 

@@ -60,7 +60,7 @@ function panel({ theme = 'auto', body, notice = '', search = false, syncing = fa
       <button class="gl-btn ${search ? 'gl-on' : ''}">⌕</button>
       <button class="gl-btn gl-on">Word</button><button class="gl-btn">◐</button>
     </div>
-    ${search ? `<div class="gl-search"><input class="gl-input" value="aria vale paper satellites"></div>` : ''}
+    ${search ? `<div class="gl-search"><input class="gl-input" value="Aria Vale"><input class="gl-input" value="Paper Satellites"></div>` : ''}
     ${notice ? `<div class="gl-notice">${notice}</div>` : ''}
     ${body}
   </div>`;

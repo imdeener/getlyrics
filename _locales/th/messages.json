@@ -17,9 +17,6 @@
   "searchTitle": {
     "message": "ค้นหาเนื้อเพลงเอง"
   },
-  "searchPlaceholder": {
-    "message": "ศิลปิน ชื่อเพลง แล้วกด Enter"
-  },
   "themeTitle": {
     "message": "ธีม: $THEME$ (กดเพื่อเปลี่ยน)",
     "placeholders": {
@@ -86,5 +83,11 @@
   },
   "reloadPage": {
     "message": "getlyrics เพิ่งอัปเดต รีเฟรชหน้านี้เพื่อใช้งานต่อ"
+  },
+  "searchArtist": {
+    "message": "ศิลปิน"
+  },
+  "searchTrack": {
+    "message": "ชื่อเพลง แล้วกด Enter"
   }
 }
