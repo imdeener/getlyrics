@@ -1,6 +1,6 @@
 # getlyrics
 
-Spotify-style synced lyrics beside the YouTube player. A Chrome extension (Manifest V3) powered by [LRCLIB](https://lrclib.net). No account, no API key.
+Real-time synced lyrics beside the YouTube player, with karaoke-style word highlighting. A Chrome extension (Manifest V3) powered by [LRCLIB](https://lrclib.net). No account, no API key.
 
 ## Features
 

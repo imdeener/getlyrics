@@ -1,6 +1,6 @@
 {
   "extDescription": {
-    "message": "Synced lyrics beside the YouTube player, powered by LRCLIB."
+    "message": "Real-time synced lyrics beside the YouTube player, with karaoke-style word highlighting. Powered by LRCLIB."
   },
   "wordButton": {
     "message": "Word"

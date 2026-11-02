@@ -34,5 +34,6 @@
       "run_at": "document_idle"
     }
   ],
-  "default_locale": "en"
+  "default_locale": "en",
+  "homepage_url": "https://github.com/imdeener/getlyrics"
 }
